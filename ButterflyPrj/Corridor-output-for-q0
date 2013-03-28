@@ -1,0 +1,18 @@
+"export-plot data (NetLogo 5.0.3)"
+"Butterfly-2-chp-5-q-vrs-witdh.nlogo"
+"01/02/2013 18:29:14:467 -0600"
+
+"MODEL SETTINGS"
+"q"
+"0"
+
+"""Corridor width"""
+"x min","x max","y min","y max","autoplot?","current pen","legend open?","number of pens"
+"0","1","0","240","true","""pen-0""","false","1"
+
+"pen name","pen down?","mode","interval","color","x"
+"""pen-0""","true","0","1","5","0"
+
+"""pen-0"""
+"x","y","color","pen down?"
+"0","217.8066305431866","5","true"
