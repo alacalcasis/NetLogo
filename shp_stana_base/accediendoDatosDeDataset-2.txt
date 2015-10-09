@@ -1,0 +1,16 @@
+gis:property-names <VectorDataset>
+Reports a list of strings where each string is the name of a property possessed by 
+each VectorFeature in the given VectorDataset, suitable for use in gis:property-value.
+
+gis:vertex-lists-of <VectorFeature>
+Reports a list of lists of Vertex values. For point datasets, each vertex list will 
+contain exactly one vertex: the location of a point. 
+
+For line datasets, each vertex list will contain at least two points, and will 
+represent a "polyline", connecting each adjacent pair of vertices in the list. 
+For polygon datasets, each vertex list will contain at least three points, 
+representing a polygon connecting each vertex, and the first and last vertices 
+in the list will be the same.
+
+gis:feature-list-of <VectorDataset>
+Reports a list of all VectorFeatures in the given dataset.

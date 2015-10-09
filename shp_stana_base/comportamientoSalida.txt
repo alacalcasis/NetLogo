@@ -1,0 +1,28 @@
+1. Para que la función de distribución acumulada sea sigmoidal puedo escoger como función de probabilidad
+a la normal (con cierto promedio p y desviación estándar d).
+2. Es decir, la salida de peatones de cada ptsSal seguirá una distribución Normal(p,d).
+3. Si se quiere sincronizar mucho las salidas, los rangos P para p de cada ptsSal y D para d de cada
+ptsSal deben ser pequeños, entre más pequeños, más sincronizadas las salidas de cada ptsSal.
+4. Habría que pensar en un rango de tiempo de evacuación TE = [0..N] en donde N es la hora o minuto
+máximo para evacuación.
+5. Luego habría que pensar en P como subrango de TE. O será mejor normalizarlo en [0..1]?
+   Tal vez como "slider" tendría más sentido así, porque más cerca de 1 sería salidas más tardías,
+   más cerca de cero salidas más rápidas.
+5.1 Pero creo que estaría perdiendo la noción de un rango para el promedio de los tiempos de salida.
+6. Tal vez sería mejor que D = [0..1] donde 0 representa sincronización total, mientras 1 representaría
+desincronización total.
+   Igualmente tal vez como slider tenga más sentido como rango [0..1], más cerca de cero más sincronizadas
+   las salidas, más cerca de uno más desincronizadas las salidas.
+7. Luego la gran pregunta, cómo hago que cada ptoSal genere más peatones conforme se acerca al promedio
+   de las distribuciones de tiempo de salida? O sea, cómo uso random-normal para lograr esto?
+8. Pareciera que el uso de random-normal no es para determinar cuántos salen en el momento t,
+   sino más bien para determinar cuándo sale cada peatón o grupo de peatones.
+9. Esto implica que dada la población de un ptoSal, habría que dividirla al azar (grupos de 1 a 5, 
+   digamos), y luego a cada grupo habría que asignarle un t de salida. Para generar este t sí habría
+   que usar random-normal con promedio en tpico y con cierta desviación estándar.
+10. Si así fuera, la siguiente pregunta es cómo dividir la población de un punto de salida? Además
+    hay que tomar en cuenta que hay niños, adultos mayores y discapacitados, y no tendría sentido que
+    salieran todos los discapacitados juntos!!! por ejemplo, o sea que hay que distribuirlos entre los
+    diferentes grupos que se formen. Tal vez la idea sería, primero dividir a los adultos sanos, y luego
+    distribuir uniformemente a los adultos mayores, a los niños y a los discapacitados entre los grupos
+    de adultos sanos.

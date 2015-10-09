@@ -1,0 +1,27 @@
+gis:feature-list-of ptsSal-salitral-ds will report a list of all VectorFeatures in ptsSal-salitral-ds.
+
+first gis:feature-list-of ptsSal-salitral-ds will report the first VectorFeature in ptsSal-salitral-ds.
+
+gis:vertex-lists-of first gis:feature-list-of ptsSal-salitral-ds Reports a list of lists of Vertex values. 
+   For point datasets, each vertex list will contain exactly one vertex: the location of a point.
+
+show gis:location-of first first gis:vertex-lists-of first gis:feature-list-of ptsSal-salitral-ds
+   Will report de x y of the first the vertex on the first list of vertex on the first VertexFeature in ptsSal-salitral-ds.
+
+So it seems that a dataset contains a list of VectorFeatures.
+Each VectorFeature contains a list of VertexValues.
+Each VertexValue contains an x y
+
+In spanish:
+gis:feature-list-of ptsSal-salitral-ds, devuelve una lista de tuplas, cada tupla representa una instancia de PUNTO, LÍNEA O POLÍGONO.
+gis:vertex-lists-of first gis:feature-list-of ptsSal-salitral-ds, devuelve una lista de listas de vértices.
+first first gis:vertex-lists-of first gis:feature-list-of ptsSal-salitral-ds, devuelve el primer vértice de la primera lista de vértices.
+show gis:location-of first first gis:vertex-lists-of first gis:feature-list-of ptsSal-salitral-ds,
+ devuelve la localización del primer vértice de la primera lista de vértices.
+
+
+show first gis:feature-list-of ptsSal-salitral-ds
+{{gis:VectorFeature ["ID":"A-1"]["POB_DSC":"6.0"]["POB_ADT":"113.0"]["POB_NYS":"29.0"]["POB_TOT":"150.0"]["POB_ADM":"8.0"]}}
+
+gis:vertex-lists-of first gis:feature-list-of ptsSal-salitral-ds
+[[{{gis:Vertex }}]]
