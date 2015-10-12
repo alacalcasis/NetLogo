@@ -44,7 +44,8 @@ to init-globals ;; Para darle valor inicial a las variables globales.
   gis:draw ptsSal-salitral-ds 1
   
   gis:set-drawing-color green
-  gis:draw rtsEvc-salitral-ds 2
+  gis:draw rtsEvc-salitral-ds 2 ; data set y grosor de la línea pintada
+  marcar-parcelas-rutas         ; colorea las parcelas en las rutas de evacuación
   
   gis:set-drawing-color 133
   gis:draw ptsEnc-salitral-ds 1
@@ -63,20 +64,20 @@ to setup ;; Para inicializar la simulación.
   init-globals ;; Para inicializar variables globales.
   
   ;; Para crear puntos de salida, de encuentro y señales y mostrarlos.
+  ptsEnc-crgDts    ; carga los datos de los puntos de encuentro desde el shape-file
+  senyls-crgDts    ; carga los datos de las señales desde el shape-file  
   ptsSal-crgDts    ; carga los datos de los puntos de salida desde el shape-file
   ask patches with [ any? ptsSal-here ] [ P-crear-peatones ]   ; crea los grupos de personas o "peatones" en cada parcela con algún ptSal
-  ptsEnc-crgDts    ; carga los datos de los puntos de encuentro desde el shape-file
-  senyls-crgDts    ; carga los datos de las señales desde el shape-file
   
   reset-ticks  ;; Para inicializar el contador de ticks.
 end
 
 to go ;; Para ejecutar la simulación.
-  ask peatones [ peaton-seguir-ruta 7 90 5 2 100 ]
+  ask ( n-of N-peatones peatones ) [ peaton-seguir-ruta 7 90 5 2 100 ]
   tick
-  actualizar-salidas
-  if ticks >= 25  ;; En caso de que la simulación esté controlada por cantidad de ticks.
-    [stop]
+  ; actualizar-salidas
+  ; if ticks >= 25  ;; En caso de que la simulación esté controlada por cantidad de ticks.
+  ;   [stop]
 end
 
 
@@ -88,8 +89,7 @@ to actualizar-salidas ;; Para actualizar todas las salidas del modelo.
 end
 
 to marcar-parcelas-rutas
-  ask patches [ set pcolor black ]
-  ask patches gis:intersecting rtsEvc-salitral-ds [ set pcolor cyan ]
+  ask patches gis:intersecting rtsEvc-salitral-ds [ set pcolor green ]
 end
 
 
@@ -100,7 +100,7 @@ end
 peatones-own [ 
   ticSal    ; ticSal es el tic en que saldrá el grupo de personas que representa el peaton
   cntPrs    ; cntPrs es la cantidad de personas que representa el peaton
-  enc       ; punto de encuentro objetivo
+  encObj       ; punto de encuentro objetivo
 ]
 
 ; REQ: tSal haya sido generado por una distribución normal
@@ -109,13 +109,17 @@ to peaton-init [ tSal cPrs ] ; Para inicializar peaton a la vez: tic de salida y
   set ticSal tSal
   set cntPrs cPrs
   set size cntPrs
-  peaton-buscar-ptEnc
+  peaton-buscar-ptEnc        ; Busca el punto de encuentro más cercano linealmente
+  
+  ; ahora hay que darle una dirección con base en la ruta de evacuación y que lo lleve al ptEnc más cercano
+  ; let direcciones patches in-radius 10 with [ pcolor = green ]
+  ; let direccion min-one-of direcciones [ distance encObj myself]
   peaton-asignar-tmpSal
 end
 
 to peaton-seguir-ruta [rv av gr lp cnp]
   ; rv sería el rango de visión: más o menos cuántas parcelas a la redonda pueden ver las tortugas para seguir la ruta. 7 parece ser el número mágico.
-  ; av sería el ángulo de visión: que nos da la cuerda en que la tortuga busca parcelas de color cyan para seguir la ruta
+  ; av sería el ángulo de visión: que nos da la cuerda en que la tortuga busca parcelas de color green para seguir la ruta
   ; gr giro que hace la tortuga para buscar un mejor heading
   ; lp longitud del paso de la tortuga hacia adelante
   ; cnp cantidad de pasos que dará la tortuga
@@ -133,9 +137,10 @@ end
 
 to peaton-seguir-ruta-rcr [rv av gr lp cnp]
   if cnp > 0 [
-     ifelse ( not any? patches in-cone rv av with [ pcolor = 83 or pcolor = 84 or pcolor = 85 ] ) ;; hay que corregir heading
+     ifelse ( not any? patches in-cone rv av with [ pcolor = 53 or pcolor = 54 or pcolor = 55 ] ) ;; hay que corregir heading
        [ ;; rt gr sólo girar para tratar de corregir heading no sirve
-         set heading towards max-one-of patches in-cone rv 270 with [ pcolor = 83 or pcolor = 84 or pcolor = 85 ] [ distance myself ]
+         ;; los peatones con heading ortogonal a la ruta de evacuación reportan no encontrar max-one-of...
+         set heading towards max-one-of patches in-cone rv 270 with [ pcolor = 53 or pcolor = 54 or pcolor = 55 ] [ distance myself ]
         ] ; 
        [ fd lp ] ; avanza porque va en la dirección correcta
      peaton-seguir-ruta-rcr rv av gr lp cnp - 1
@@ -143,6 +148,7 @@ to peaton-seguir-ruta-rcr [rv av gr lp cnp]
 end
 
 to peaton-buscar-ptEnc
+  set encObj min-one-of ptsEnc [ distance self ]
 end
 
 to peaton-asignar-tmpSal
@@ -386,6 +392,17 @@ NIL
 NIL
 NIL
 1
+
+INPUTBOX
+48
+145
+146
+205
+N-peatones
+10
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
