@@ -12,7 +12,8 @@ globals [ ptsEnc-salitral-ds
           inndcn-salitral-ds
           subSct-salitral-ds
           sectores-salitral-ds 
-          mapa-ds ]
+          mapa-ds 
+          peatones-evacuando ]
 
 to init-globals ;; Para darle valor inicial a las variables globales.
   let ruta "mapas"
@@ -55,6 +56,8 @@ to init-globals ;; Para darle valor inicial a las variables globales.
   
   gis:set-drawing-color 56
   gis:draw inndcn-salitral-ds 1
+  
+  set peatones-evacuando nobody
 end
 
 to setup ;; Para inicializar la simulación.
@@ -69,15 +72,22 @@ to setup ;; Para inicializar la simulación.
   ptsSal-crgDts    ; carga los datos de los puntos de salida desde el shape-file
   ask patches with [ any? ptsSal-here ] [ P-crear-peatones ]   ; crea los grupos de personas o "peatones" en cada parcela con algún ptSal
   
+  ; set peatones-evacuando n-of N-peatones peatones
+  ; set peatones-evacuando peatones with [ ptoSal = patch -170 287]
+  
   reset-ticks  ;; Para inicializar el contador de ticks.
 end
 
 to go ;; Para ejecutar la simulación.
-  ask ( n-of N-peatones peatones ) [ peaton-seguir-ruta 7 90 5 2 100 ]
+  ; ask ( peatones-evacuando ) [ peaton-seguir-ruta 7 90 5 2 1000 ]
+  ; ask ( peatones-evacuando ) with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
+  ; ask peatones with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
+  ; ask peatones with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
+  ask peatones with [distance ptoEncObj > 5 and not llegue ] [ peatones-seguir-ruta 7 90 5 2 ]
   tick
-  ; actualizar-salidas
-  ; if ticks >= 25  ;; En caso de que la simulación esté controlada por cantidad de ticks.
-  ;   [stop]
+  ifelse ( peatones with [ not llegue ] = nobody )
+    [ stop ]
+    [ tick ]
 end
 
 
@@ -100,15 +110,19 @@ end
 peatones-own [ 
   ticSal    ; ticSal es el tic en que saldrá el grupo de personas que representa el peaton
   cntPrs    ; cntPrs es la cantidad de personas que representa el peaton
-  encObj       ; punto de encuentro objetivo
+  ptoSal    ; punto de salida en que se ubica el peatón inicialmente
+  ptoEncObj       ; punto de encuentro objetivo
+  llegue    ; booleano para peatón oportunista que llegó antes a cualquier punto de encuentro que se encontró
 ]
 
 ; REQ: tSal haya sido generado por una distribución normal
 ; EFE: inicializar un peaton con tic de salida en tSal y 
-to peaton-init [ tSal cPrs ] ; Para inicializar peaton a la vez: tic de salida y cantidad de peatones.
-  set ticSal tSal
-  set cntPrs cPrs
-  set size cntPrs
+to peaton-init [ tSal cPrs pSal] ; Para inicializar peaton a la vez: tic de salida y cantidad de peatones.
+  set ticSal tSal   ; se le asigna un tic de salida
+  set cntPrs cPrs   ; se le asigna una cantidad de personas que representará el peatón
+  set ptoSal pSal   ; se le asigna un punto de salida para efectos de depuración principalmente
+  set size cntPrs   ; se le asigna un tamaño de acuerdo con la cantidad de personas que representa
+  set llegue false
   peaton-buscar-ptEnc        ; Busca el punto de encuentro más cercano linealmente
   
   ; ahora hay que darle una dirección con base en la ruta de evacuación y que lo lleve al ptEnc más cercano
@@ -136,19 +150,30 @@ to peaton-seguir-ruta [rv av gr lp cnp]
 end
 
 to peaton-seguir-ruta-rcr [rv av gr lp cnp]
-  if cnp > 0 [
-     ifelse ( not any? patches in-cone rv av with [ pcolor = 53 or pcolor = 54 or pcolor = 55 ] ) ;; hay que corregir heading
+  ; 1.33 m/s es lo que Erick Mass recomienda para la velocidad de los peatones
+  if distance ptoEncObj > 5 [
+     ifelse ( not any? patches in-cone rv av with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] ) ;; hay que corregir heading
        [ ;; rt gr sólo girar para tratar de corregir heading no sirve
-         ;; los peatones con heading ortogonal a la ruta de evacuación reportan no encontrar max-one-of...
-         set heading towards max-one-of patches in-cone rv 270 with [ pcolor = 53 or pcolor = 54 or pcolor = 55 ] [ distance myself ]
+         ;; los peatones con heading ortogonal a la ruta de evacuación reportan no encontrar max-one-of, min-one-of...
+         ; set heading towards min-one-of patches in-cone rv 300 with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] [ distance myself ]
+         set heading towards one-of patches in-cone rv 360 with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ]
         ] ; 
        [ fd lp ] ; avanza porque va en la dirección correcta
      peaton-seguir-ruta-rcr rv av gr lp cnp - 1
   ]
 end
 
+to peatones-seguir-ruta [rv av gr lp]
+  ifelse ( not any? patches in-cone rv av with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] ) ;; hay que corregir heading
+    [ set heading towards min-one-of patches in-cone rv 360 with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] [distance self]]
+    [ fd lp 
+      if ( distance (min-one-of ptsEnc [distance myself]) <= 5 ) or (distance ptoEncObj <= 5)
+           [ set llegue true ]
+    ]
+end
+
 to peaton-buscar-ptEnc
-  set encObj min-one-of ptsEnc [ distance self ]
+  set ptoEncObj min-one-of ptsEnc [ distance myself ] ; NO SIRVE self!!!!!
 end
 
 to peaton-asignar-tmpSal
@@ -309,11 +334,11 @@ to P-crear-peatones
   let pobAgrupada 0    ; acumula el total de población agrupada para comparar contra pobTot
   while [ ( cntFg > 1 ) and (pobTotRst > 0) ][
     let cntGps random round ( pobTotRst / cntFg )
-    show word "se crearán " word cntGps  word " de " word cntFg " peatones cada uno."
+    ;show word "se crearán " word cntGps  word " de " word cntFg " peatones cada uno."
     set lstGps lput ( list cntGps cntFg ) lstGps 
     sprout-peatones cntGps [ 
       let tSal 0 ; se debe generar un valor al azar para tic de salida con base en la normal
-      peaton-init tSal cntFg ; inicializa cada peatón
+      peaton-init tSal cntFg patch-here ; inicializa cada peatón NO FUNCIONA self porque se refiere al peaton y no a la parcela!!!!
     ]
     set pobAgrupada cntGps * cntFg + pobAgrupada
     set pobTotRst pobTotRst - cntGps * cntFg
@@ -321,15 +346,15 @@ to P-crear-peatones
     set cntTotPtns cntTotPtns + cntGps
   ]
   if pobTotRst > 0 [ ;crear pobTotRst de peatones solos, es decir, grupos de una persona para completar la población total.
-    show word "se crean " word pobTotRst " de un peaton cada uno."
+    ;show word "se crean " word pobTotRst " de un peaton cada uno."
     set lstGps lput ( list pobTotRst 1 ) lstGps
     set cntTotPtns cntTotPtns + pobTotRst
     sprout-peatones pobTotRst [ 
       let tSal 0 ; se debe generar un valor al azar para tic de salida con base en la normal
-      peaton-init tSal 1 ; inicializa cada peatón
+      peaton-init tSal 1 patch-here ; inicializa cada peatón
     ]    
   ]
-  show word lstGps  word " total: " word ptsSal-cuenta-grupos word " cant tot pos grupos: " word cntTotPtns word " pobTot: "word pobTot word " pobAgrup: "  ( pobAgrupada + pobTotRst )
+  ;show word lstGps  word " total: " word ptsSal-cuenta-grupos word " cant tot pos grupos: " word cntTotPtns word " pobTot: "word pobTot word " pobAgrup: "  ( pobAgrupada + pobTotRst )
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -399,7 +424,7 @@ INPUTBOX
 146
 205
 N-peatones
-10
+100
 1
 0
 Number
