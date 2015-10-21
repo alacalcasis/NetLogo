@@ -84,10 +84,9 @@ to go ;; Para ejecutar la simulación.
   ; ask peatones with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
   ; ask peatones with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
   ask peatones with [distance ptoEncObj > 5 and not llegue ] [ peatones-seguir-ruta 7 90 5 2 ]
-  tick
-  ifelse ( peatones with [ not llegue ] = nobody )
-    [ stop ]
+  ifelse ( any? peatones with [ not llegue ] )
     [ tick ]
+    [ stop ]
 end
 
 
