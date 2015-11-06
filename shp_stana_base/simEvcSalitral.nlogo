@@ -83,8 +83,8 @@ to go ;; Para ejecutar la simulación.
   ; ask ( peatones-evacuando ) with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
   ; ask peatones with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
   ; ask peatones with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
-  ask peatones with [distance ptoEncObj > 5 and not llegue ] [ peatones-seguir-ruta 7 90 5 2 ]
-  ifelse ( any? peatones with [ not llegue ] )
+  ask peatones with [ ticsal <= ticks and distance ptoEncObj > 5 and not llegue ] [ peatones-seguir-ruta 7 90 5 2 ]
+  ifelse ( any? peatones with [ not llegue ] and ticks <= N-tics )
     [ tick ]
     [ stop ]
 end
@@ -101,6 +101,11 @@ to marcar-parcelas-rutas
   ask patches gis:intersecting rtsEvc-salitral-ds [ set pcolor green ]
 end
 
+to-report random-rayleigh [ p ]
+  if p <= 0 [ show "Promedio para Rayleigh debe ser mayor a cero" stop ]
+  let u random-float 1
+  report p * sqrt (-2 * log u e )  
+end
 
 ;;*******************************
 ;; Definición de agentes peaton:
@@ -116,8 +121,8 @@ peatones-own [
 
 ; REQ: tSal haya sido generado por una distribución normal
 ; EFE: inicializar un peaton con tic de salida en tSal y 
-to peaton-init [ tSal cPrs pSal] ; Para inicializar peaton a la vez: tic de salida y cantidad de peatones.
-  set ticSal tSal   ; se le asigna un tic de salida
+to peaton-init [ cPrs pSal] ; Para inicializar peaton a la vez: tic de salida y cantidad de peatones.
+  set ticSal floor ( N-tics * random-rayleigh pico )  ; se le asigna un tic de salida con base en la distribución Rayleigh
   set cntPrs cPrs   ; se le asigna una cantidad de personas que representará el peatón
   set ptoSal pSal   ; se le asigna un punto de salida para efectos de depuración principalmente
   set size cntPrs   ; se le asigna un tamaño de acuerdo con la cantidad de personas que representa
@@ -336,8 +341,7 @@ to P-crear-peatones
     ;show word "se crearán " word cntGps  word " de " word cntFg " peatones cada uno."
     set lstGps lput ( list cntGps cntFg ) lstGps 
     sprout-peatones cntGps [ 
-      let tSal 0 ; se debe generar un valor al azar para tic de salida con base en la normal
-      peaton-init tSal cntFg patch-here ; inicializa cada peatón NO FUNCIONA self porque se refiere al peaton y no a la parcela!!!!
+      peaton-init cntFg patch-here ; inicializa cada peatón NO FUNCIONA self porque se refiere al peaton y no a la parcela!!!!
     ]
     set pobAgrupada cntGps * cntFg + pobAgrupada
     set pobTotRst pobTotRst - cntGps * cntFg
@@ -349,8 +353,7 @@ to P-crear-peatones
     set lstGps lput ( list pobTotRst 1 ) lstGps
     set cntTotPtns cntTotPtns + pobTotRst
     sprout-peatones pobTotRst [ 
-      let tSal 0 ; se debe generar un valor al azar para tic de salida con base en la normal
-      peaton-init tSal 1 patch-here ; inicializa cada peatón
+      peaton-init 1 patch-here ; inicializa cada peatón
     ]    
   ]
   ;show word lstGps  word " total: " word ptsSal-cuenta-grupos word " cant tot pos grupos: " word cntTotPtns word " pobTot: "word pobTot word " pobAgrup: "  ( pobAgrupada + pobTotRst )
@@ -384,10 +387,10 @@ ticks
 30.0
 
 BUTTON
-55
+21
+18
+86
 51
-120
-84
 Iniciar
 setup
 NIL
@@ -401,10 +404,10 @@ NIL
 1
 
 BUTTON
-56
-97
-119
-130
+90
+19
+153
+52
 go
 go
 T
@@ -418,15 +421,41 @@ NIL
 1
 
 INPUTBOX
-48
-145
-146
-205
+20
+59
+98
+119
 N-peatones
 100
 1
 0
 Number
+
+INPUTBOX
+102
+59
+179
+120
+N-tics
+240
+1
+0
+Number
+
+SLIDER
+14
+127
+186
+160
+pico
+pico
+0
+1
+0.8
+0.01
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
