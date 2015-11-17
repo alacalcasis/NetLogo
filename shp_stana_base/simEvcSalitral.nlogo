@@ -14,6 +14,7 @@ globals [ ptsEnc-salitral-ds
           sectores-salitral-ds 
           mapa-ds 
           peatones-evacuando ]
+          ; min-seg: ON --> cada tic un minuto, OFF --> cada tic un segundo.
 
 to init-globals ;; Para darle valor inicial a las variables globales.
   let ruta "mapas"
@@ -115,8 +116,11 @@ peatones-own [
   ticSal    ; ticSal es el tic en que saldrá el grupo de personas que representa el peaton
   cntPrs    ; cntPrs es la cantidad de personas que representa el peaton
   ptoSal    ; punto de salida en que se ubica el peatón inicialmente
-  ptoEncObj       ; punto de encuentro objetivo
+  ptoEncObj ; punto de encuentro objetivo
   llegue    ; booleano para peatón oportunista que llegó antes a cualquier punto de encuentro que se encontró
+  vel       ; velocidad del peatón que se define con base en una distribución normal (según E. Mas) cuyos 
+            ; parámetros dependen del tamaño del grupo, según tabla documentada más abajo.
+            ; Por supuesto la velocidad sólo puede ser positiva.
 ]
 
 ; REQ: tSal haya sido generado por una distribución normal
@@ -127,12 +131,8 @@ to peaton-init [ cPrs pSal] ; Para inicializar peaton a la vez: tic de salida y 
   set ptoSal pSal   ; se le asigna un punto de salida para efectos de depuración principalmente
   set size cntPrs   ; se le asigna un tamaño de acuerdo con la cantidad de personas que representa
   set llegue false
-  peaton-buscar-ptEnc        ; Busca el punto de encuentro más cercano linealmente
-  
-  ; ahora hay que darle una dirección con base en la ruta de evacuación y que lo lleve al ptEnc más cercano
-  ; let direcciones patches in-radius 10 with [ pcolor = green ]
-  ; let direccion min-one-of direcciones [ distance encObj myself]
-  peaton-asignar-tmpSal
+  peaton-buscar-ptEnc        ; Busca el punto de encuentro más cercano linealmente y se asigna como punto de encuentro objetivo
+  peaton-asignar-velocidad
 end
 
 to peaton-seguir-ruta [rv av gr lp cnp]
@@ -168,9 +168,13 @@ to peaton-seguir-ruta-rcr [rv av gr lp cnp]
 end
 
 to peatones-seguir-ruta [rv av gr lp]
+  ; rv sería el rango de visión: más o menos cuántas parcelas a la redonda pueden ver las tortugas para seguir la ruta. 7 parece ser el número mágico.
+  ; av sería el ángulo de visión: que nos da la cuerda en que la tortuga busca parcelas de color green para seguir la ruta. 90 parece ser el número mágico.
+  ; gr giro que hace la tortuga para buscar un mejor heading. 5 parece ser el número mágico
+  ; lp longitud del paso de la tortuga hacia adelante. 2 ha funcionado.
   ifelse ( not any? patches in-cone rv av with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] ) ;; hay que corregir heading
     [ set heading towards min-one-of patches in-cone rv 360 with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] [distance self]]
-    [ fd lp 
+    [ fd vel ; se usa la velocidad del peatón calculada en setup 
       if ( distance (min-one-of ptsEnc [distance myself]) <= 5 ) or (distance ptoEncObj <= 5)
            [ set llegue true ]
     ]
@@ -180,7 +184,39 @@ to peaton-buscar-ptEnc
   set ptoEncObj min-one-of ptsEnc [ distance myself ] ; NO SIRVE self!!!!!
 end
 
-to peaton-asignar-tmpSal
+to peaton-asignar-velocidad
+  let promedio 0.0
+  let desviacion 0.0
+  ; min-seg: ON --> cada tic un minuto, OFF --> cada tic un segundo.
+  
+  ifelse min-seg ; cuando cada tic representa un minuto
+    [ ifelse cntPrs = 1
+      [ set vel random-normal 17.86 3.49
+        if vel <= 0 [ set vel 17.86 - 3.49 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
+      [ ifelse cntPrs = 2
+        [ set vel random-normal 10.61 4.83
+          if vel <= 0 [ set vel 10.61 - 4.83 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
+        [ ifelse cntPrs = 3
+          [ set vel random-normal 7.12 5.64 
+            if vel <= 0 [ set vel 7.12 - 5.64 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
+          [ set vel random-normal 3.49 6.31
+            if vel <= 0 [ set vel 3.49 ] ] ; si generó un valor menor a cero, se asigna el promedio en este último caso
+          ]
+        ]
+      ]
+    [ ifelse cntPrs = 1 ; cuando cada tic representa un segundo
+      [ set vel random-normal 0.3 0.06
+        if vel <= 0 [ set vel 0.3 - 0.06 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
+      [ ifelse cntPrs = 2
+        [ set vel random-normal 0.18 0.08
+          if vel <= 0 [ set vel 0.18 - 0.08 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
+        [ ifelse cntPrs = 3
+          [ set vel random-normal 0.12 0.09 
+            if vel <= 0 [ set vel 0.12 - 0.09 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
+          [ set vel random-normal 0.06 0.11
+            if vel <= 0 [ set vel 0.06 ] ] ; si generó un valor menor a cero, se asigna el promedio en este último caso
+          ]
+        ]]
 end
 
 ;;*******************************
@@ -437,7 +473,7 @@ INPUTBOX
 179
 120
 N-tics
-240
+40
 1
 0
 Number
@@ -451,11 +487,22 @@ pico
 pico
 0
 1
-0.8
+0.2
 0.01
 1
 NIL
 HORIZONTAL
+
+SWITCH
+19
+176
+122
+209
+min-seg
+min-seg
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?

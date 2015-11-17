@@ -1,0 +1,96 @@
+#1 Movimiento:
+** del patch -66 46 hasta el patch -50 45 hay aproximadamente 71.5mts
+** del patch -66 46 hasta el patch -50 45 hay en dirección ESTE hay 16 pasos de tortuga
+** por lo tanto, cada paso de tortuga equivale a 4,47mts
+** por lo tanto, cada 0.5 de paso de tortuga equivale a 2.235mts
+** según Erick Mas, la velocidad de los peatones sigue una distribución Gaussiana con promedio
+   de 1.33m/s con una desviación estándar de 0.26m/s.
+** por lo tanto, recorrerían 71.5mts en aproximadamente 56.76 segundos
+** o lo que es lo mismo, su velocidad promedio por minuto es 79.8mts/m.
+** Por otro lado, debería considerar más lentos a los grupos que a los individuos, tanto porque
+   son grupos, como porque los grupos llevan adultos mayores, discapacitados y niños.
+** lo anterior implica que tanto la velocidad promedio por segundo, como la desviación estándar
+   de tal velocidad debería ser mayor conforme más grande es el grupo, esto para tomar en cuenta
+   los dos factores: que llevan a un adulto mayor, un discapacitado o un niño y que son más.
+** con todo lo anterior, pareciera que tiene sentido considerar una simulación con escala temporal
+   de un tic por segundo y no sólo con la escala original de un tic por minuto. Quizás debería
+   incluirse un switch que permita simular a una u otra escala.
+** dado que los peatones representan grupos de personas de 1 a 5, y dado que los de 2 o más llevan
+   un adulto mayor, discapacitado o niño, pareciera que si la velocidad promedio de un peatón de 
+   una persona es 1, la velocidad promedio de los peatones de:
+   2 personas debería ser al menos 40% menos de la de 1.
+   3 personas debería ser al menos 60% menos de la de 1.
+   4 personas debería ser al menos 80% menos de la de 1.
+   5 personas debería ser al menos 90% menos de la de 1.
+** siguiendo el mismo razonamiento, la desviación estándar debería aumentar proporcionalmente de
+   manera similar.
+** lo anterior implica la siguiente tabla de parámetros para las distribuciones Gaussianas de la
+   velocidad de los peatones:
+   
+   	#P	prom (m/s)	desv-est (m/s)
+    	1	1.33		0.26
+	2	0.79		0.36
+	3	0.53		0.42	
+	4	0.26		0.47
+	5	0.13		0.49
+** pero creo que los valores de la fila#5 no tienen sentido, así que una versión corregida sería:
+   
+   	#P	prom (m/s)	desv-est (m/s)
+    	1	1.33		0.26
+	2	0.79		0.36
+	3	0.53		0.42	
+	4	0.26		0.47
+	5	0.26		0.47
+** por lo tanto, se ocuparán cuatro distribuciones Gaussianas para generar las velocidades de los 
+   peatones.
+** otra pregunta: será variable la velocidad de los peatones?
+** Yo supongo que sí, pero quizás dicha variabilidad debería estar determinada por la aglomeración.
+** Por lo tanto, hay que modelar la aglomeración y en consecuencia los cambios de velocidad.
+** La distribución Gaussiana es simplemente la normal...jejejeje...
+
+
+** Lo siguiente habría que transformarlo en pasos de tortuga:
+; *** EN METROS x SEGUNDO:
+; *** TABLA DE PARÁMETROS PARA DISTRIBUCIONES NORMALES PARA VELOCIDADES DE PEATONES ***
+;     #P  prom (m/s)  desv-est (m/s)
+;      1  1.33         0.26
+;      2  0.79         0.36
+;      3  0.53         0.42  
+;      4  0.26         0.47
+;      5  0.26         0.47
+; *** FIN TABLA DE PARÁMETROS PARA DISTRIBUCIONES NORMALES PARA VELOCIDADES DE PEATONES ***
+
+; *** EN METROS x MINUTO:
+; *** TABLA DE PARÁMETROS PARA DISTRIBUCIONES NORMALES PARA VELOCIDADES DE PEATONES ***
+;     #P  prom (m/M)  desv-est (m/M)
+;      1  79.8         15.6
+;      2  47.4         21.6
+;      3  31.8         25.2  
+;      4  15.6         28.2
+;      5  15.6         28.2
+; *** FIN TABLA DE PARÁMETROS PARA DISTRIBUCIONES NORMALES PARA VELOCIDADES DE PEATONES ***
+
+** Dado que 71,5mts están representados por 16 pasos de tortuga, entonces cada paso de tortuga
+   representa 4,46875mts. Por lo tanto, las dos tablas anteriores se transformarían a pasos de
+   tortuga por tic (ya sea segundo o minuto) de la siguiente forma:
+
+** Lo siguiente habría que transformarlo en pasos de tortuga:
+; *** EN PASOS-DE-TORTUGA x TIC == SEGUNDO:
+; *** TABLA DE PARÁMETROS PARA DISTRIBUCIONES NORMALES PARA VELOCIDADES DE PEATONES ***
+;     #P  prom (m/s)  desv-est (m/s)
+;      1  1.33         0.26
+;      2  0.79         0.36
+;      3  0.53         0.42  
+;      4  0.26         0.47
+;      5  0.26         0.47
+; *** FIN TABLA DE PARÁMETROS PARA DISTRIBUCIONES NORMALES PARA VELOCIDADES DE PEATONES ***
+
+; *** EN PASOS-DE-TORTUGA x TIC == MINUTO:
+; *** TABLA DE PARÁMETROS PARA DISTRIBUCIONES NORMALES PARA VELOCIDADES DE PEATONES ***
+;     #P  prom (m/M)  desv-est (m/M)
+;      1  79.8         15.6
+;      2  47.4         21.6
+;      3  31.8         25.2  
+;      4  15.6         28.2
+;      5  15.6         28.2
+; *** FIN TABLA DE PARÁMETROS PARA DISTRIBUCIONES NORMALES PARA VELOCIDADES DE PEATONES ***
