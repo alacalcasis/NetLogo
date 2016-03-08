@@ -55,7 +55,7 @@ to init-globals ;; Para darle valor inicial a las variables globales.
   gis:set-drawing-color sky
   gis:draw senyls-salitral-ds 1
   
-  gis:set-drawing-color 56
+  gis:set-drawing-color 15
   gis:draw inndcn-salitral-ds 1
   
   set peatones-evacuando nobody
@@ -84,8 +84,8 @@ to go ;; Para ejecutar la simulación.
   ; ask ( peatones-evacuando ) with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
   ; ask peatones with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
   ; ask peatones with [distance ptoEncObj > 5] [ peatones-seguir-ruta 7 90 5 2 ]
-  ask peatones with [ ticsal <= ticks and distance ptoEncObj > 5 and not llegue ] [ peatones-seguir-ruta 7 90 5 2 ]
-  ifelse ( any? peatones with [ not llegue ] and ticks <= N-tics )
+  ask peatones with [ ticsal <= ticks and distance ptoEncObj > 5 and not llegue ] [ peatones-seguir-ruta 7 90 ]
+  ifelse ( any? peatones with [ not llegue ] and ticks <= ( N-minutos * 60 ) )
     [ tick ]
     [ stop ]
 end
@@ -125,17 +125,17 @@ peatones-own [
 
 ; REQ: tSal haya sido generado por una distribución normal
 ; EFE: inicializar un peaton con tic de salida en tSal y 
-to peaton-init [ cPrs pSal] ; Para inicializar peaton a la vez: tic de salida y cantidad de peatones.
-  set ticSal floor ( N-tics * random-rayleigh pico )  ; se le asigna un tic de salida con base en la distribución Rayleigh
+to peatones-init [ cPrs pSal] ; Para inicializar peaton a la vez: tic de salida y cantidad de peatones.
+  set ticSal floor ( N-minutos * 60 * random-rayleigh pico )  ; se le asigna un tic de salida con base en la distribución Rayleigh
   set cntPrs cPrs   ; se le asigna una cantidad de personas que representará el peatón
   set ptoSal pSal   ; se le asigna un punto de salida para efectos de depuración principalmente
   set size cntPrs   ; se le asigna un tamaño de acuerdo con la cantidad de personas que representa
   set llegue false
-  peaton-buscar-ptEnc        ; Busca el punto de encuentro más cercano linealmente y se asigna como punto de encuentro objetivo
-  peaton-asignar-velocidad
+  peatones-buscar-ptEnc        ; Busca el punto de encuentro más cercano linealmente y se asigna como punto de encuentro objetivo
+  peatones-asignar-velocidad
 end
 
-to peaton-seguir-ruta [rv av gr lp cnp]
+to peatones-seguir-ruta-rcr [rv av gr lp cnp]
   ; rv sería el rango de visión: más o menos cuántas parcelas a la redonda pueden ver las tortugas para seguir la ruta. 7 parece ser el número mágico.
   ; av sería el ángulo de visión: que nos da la cuerda en que la tortuga busca parcelas de color green para seguir la ruta
   ; gr giro que hace la tortuga para buscar un mejor heading
@@ -150,10 +150,10 @@ to peaton-seguir-ruta [rv av gr lp cnp]
   ; set heading 90
   ; set color white
   ; follow-me
-  peaton-seguir-ruta-rcr rv av gr lp cnp
+  peatones-seguir-ruta-rcr-ayd rv av gr lp cnp
 end
 
-to peaton-seguir-ruta-rcr [rv av gr lp cnp]
+to peatones-seguir-ruta-rcr-ayd [rv av gr lp cnp]
   ; 1.33 m/s es lo que Erick Mass recomienda para la velocidad de los peatones
   if distance ptoEncObj > 5 [
      ifelse ( not any? patches in-cone rv av with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] ) ;; hay que corregir heading
@@ -163,48 +163,40 @@ to peaton-seguir-ruta-rcr [rv av gr lp cnp]
          set heading towards one-of patches in-cone rv 360 with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ]
         ] ; 
        [ fd lp ] ; avanza porque va en la dirección correcta
-     peaton-seguir-ruta-rcr rv av gr lp cnp - 1
+     peatones-seguir-ruta-rcr-ayd rv av gr lp cnp - 1
   ]
 end
 
-to peatones-seguir-ruta [rv av gr lp]
+;to peatones-seguir-ruta [rv av gr lp]
   ; rv sería el rango de visión: más o menos cuántas parcelas a la redonda pueden ver las tortugas para seguir la ruta. 7 parece ser el número mágico.
   ; av sería el ángulo de visión: que nos da la cuerda en que la tortuga busca parcelas de color green para seguir la ruta. 90 parece ser el número mágico.
   ; gr giro que hace la tortuga para buscar un mejor heading. 5 parece ser el número mágico
   ; lp longitud del paso de la tortuga hacia adelante. 2 ha funcionado.
-  ifelse ( not any? patches in-cone rv av with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] ) ;; hay que corregir heading
-    [ set heading towards min-one-of patches in-cone rv 360 with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] [distance self]]
-    [ fd vel ; se usa la velocidad del peatón calculada en setup 
-      if ( distance (min-one-of ptsEnc [distance myself]) <= 5 ) or (distance ptoEncObj <= 5)
-           [ set llegue true ]
-    ]
+  ;if ( not any? patches in-cone rv av with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] ) ;; hay que corregir heading
+  ;  [ set heading towards min-one-of patches in-cone rv 360 with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] [distance self] ]
+  ;  fd vel ; se usa la velocidad del peatón calculada en setup 
+  ;    if ( distance (min-one-of ptsEnc [distance myself]) <= 5 ) or (distance ptoEncObj <= 5)
+  ;         [ set llegue true ]
+;end
+
+to peatones-seguir-ruta [ rv av ]
+  ; rv sería el rango de visión: más o menos cuántas parcelas a la redonda pueden ver las tortugas para seguir la ruta. 7 parece ser el número mágico.
+  ; av sería el ángulo de visión: que nos da la cuerda en que la tortuga busca parcelas de color green para seguir la ruta. 90 parece ser el número mágico.
+  if ( not any? patches in-cone rv av with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] ) ;; hay que corregir heading
+    ;[ set heading towards min-one-of patches in-cone rv 360 with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] [distance self] ]
+    [ peatones-corregir-heading rv av ]
+  fd vel ; se usa la velocidad del peatón calculada en setup 
+  if ( distance (min-one-of ptsEnc [distance myself]) <= 5 ) or (distance ptoEncObj <= 5)
+     [ set llegue true ]
 end
 
-to peaton-buscar-ptEnc
+to peatones-buscar-ptEnc
   set ptoEncObj min-one-of ptsEnc [ distance myself ] ; NO SIRVE self!!!!!
 end
 
-to peaton-asignar-velocidad
-  let promedio 0.0
-  let desviacion 0.0
-  ; min-seg: ON --> cada tic un minuto, OFF --> cada tic un segundo.
-  
-  ifelse min-seg ; cuando cada tic representa un minuto
-    [ ifelse cntPrs = 1
-      [ set vel random-normal 17.86 3.49
-        if vel <= 0 [ set vel 17.86 - 3.49 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
-      [ ifelse cntPrs = 2
-        [ set vel random-normal 10.61 4.83
-          if vel <= 0 [ set vel 10.61 - 4.83 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
-        [ ifelse cntPrs = 3
-          [ set vel random-normal 7.12 5.64 
-            if vel <= 0 [ set vel 7.12 - 5.64 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
-          [ set vel random-normal 3.49 6.31
-            if vel <= 0 [ set vel 3.49 ] ] ; si generó un valor menor a cero, se asigna el promedio en este último caso
-          ]
-        ]
-      ]
-    [ ifelse cntPrs = 1 ; cuando cada tic representa un segundo
+; EFE: asigna la velocidad por segundo porque la simulación representa el proceso por segundos
+to peatones-asignar-velocidad
+  ifelse cntPrs = 1 ; cuando cada tic representa un segundo
       [ set vel random-normal 0.3 0.06
         if vel <= 0 [ set vel 0.3 - 0.06 ] ] ; si generó un valor menor a cero, se asigna el promedio - desv-estándar
       [ ifelse cntPrs = 2
@@ -216,7 +208,15 @@ to peaton-asignar-velocidad
           [ set vel random-normal 0.06 0.11
             if vel <= 0 [ set vel 0.06 ] ] ; si generó un valor menor a cero, se asigna el promedio en este último caso
           ]
-        ]]
+        ]
+end
+
+to-report peatones-obt-vel
+  report vel
+end
+
+to peatones-corregir-heading [ rv av ]
+  set heading towards min-one-of patches in-cone rv 360 with [ pcolor = 54 or pcolor = 55 or pcolor = 56 ] [distance self]
 end
 
 ;;*******************************
@@ -377,7 +377,7 @@ to P-crear-peatones
     ;show word "se crearán " word cntGps  word " de " word cntFg " peatones cada uno."
     set lstGps lput ( list cntGps cntFg ) lstGps 
     sprout-peatones cntGps [ 
-      peaton-init cntFg patch-here ; inicializa cada peatón NO FUNCIONA self porque se refiere al peaton y no a la parcela!!!!
+      peatones-init cntFg patch-here ; inicializa cada peatón NO FUNCIONA self porque se refiere al peaton y no a la parcela!!!!
     ]
     set pobAgrupada cntGps * cntFg + pobAgrupada
     set pobTotRst pobTotRst - cntGps * cntFg
@@ -389,7 +389,7 @@ to P-crear-peatones
     set lstGps lput ( list pobTotRst 1 ) lstGps
     set cntTotPtns cntTotPtns + pobTotRst
     sprout-peatones pobTotRst [ 
-      peaton-init 1 patch-here ; inicializa cada peatón
+      peatones-init 1 patch-here ; inicializa cada peatón
     ]    
   ]
   ;show word lstGps  word " total: " word ptsSal-cuenta-grupos word " cant tot pos grupos: " word cntTotPtns word " pobTot: "word pobTot word " pobAgrup: "  ( pobAgrupada + pobTotRst )
@@ -472,8 +472,8 @@ INPUTBOX
 59
 179
 120
-N-tics
-40
+N-minutos
+80
 1
 0
 Number
@@ -492,17 +492,6 @@ pico
 1
 NIL
 HORIZONTAL
-
-SWITCH
-19
-176
-122
-209
-min-seg
-min-seg
-0
-1
--1000
 
 @#$#@#$#@
 ## WHAT IS IT?
